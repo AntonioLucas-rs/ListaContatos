@@ -1,7 +1,7 @@
 import { db } from '@/src/firebase';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import React, { useCallback, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from "react-native";
 
@@ -54,6 +54,17 @@ export default function ListaConatos () {
     setSelectContact(null);
   }
 
+  const deleteContato = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'agenda', id));
+
+      setContatos(prev => prev.filter(contato => contato.id !== id));
+      console.log('Contato deletado com sucesso!');
+    } catch  (error) {
+      console.error('Erro ao deletar contato', error);
+    }
+  };
+
 
   return (
     <View style={[styles.container, {backgroundColor: black}]}>
@@ -96,8 +107,17 @@ export default function ListaConatos () {
           transparent={true}
           animationType='slide'
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, {backgroundColor: itemBackground}]}>
+        <Pressable style={styles.modalOverlay} onPress={closeModal}>
+          <Pressable 
+            style={[styles.modalContent, {backgroundColor: itemBackground}]}
+            onPress={(e) => e.stopPropagation()}
+          >
+
+            <Pressable style={styles.closeButton} onPress={closeModal}>
+              <Feather name="x" size={24} color="white" />
+            </Pressable>
+        
+          
             <Text style={[styles.modalTitle, {color: textColor}]}>Detalhes do Contato</Text>
             {selectContact && (
               <>
@@ -106,13 +126,22 @@ export default function ListaConatos () {
                 <Text style={{color: textColor}}>E-mail: {selectContact.email}</Text>
               </>
             )}
-            
-            <Pressable style={styles.closeButton} onPress={closeModal}>
-              <Text style={{ color: 'white' }}>Fechar</Text>
-            </Pressable>
 
-          </View>
-        </View>
+
+            <TouchableOpacity 
+              style={styles.trash} 
+              onPress={() => {
+                if (selectContact) {
+                  deleteContato(selectContact.id);
+                  closeModal();
+                }
+              }}
+            >
+              <Feather name='trash-2' size={34} color={'orange'} />
+            </TouchableOpacity>
+
+          </Pressable>
+        </Pressable>
       </Modal>
   </View>
   )
@@ -167,7 +196,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '80%',
-    padding: 20,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
     borderRadius: 10,
   },
   modalTitle: {
@@ -177,11 +207,18 @@ const styles = StyleSheet.create({
 
   },
   closeButton: {
-    marginTop: 20,
-    backgroundColor: 'orange',
-    padding: 10,
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    padding: 2,
+    backgroundColor: 'red',
     borderRadius: 8, 
     alignItems: 'center'
+  },
+  trash: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20.
   },
 
 });
